@@ -7,25 +7,30 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class HttpClientRunner {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
          HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:9000"))
-                .header("content-type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofFile(Path.of("src/main/resources/pro100.json")))
-                .build();
+                 .version(HttpClient.Version.HTTP_1_1)
+                 .GET()
+                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println("ДО");
-        System.out.println(response.headers());
-        System.out.println(response.body());
-        System.out.println("ПОСЛЕ");
-    }
 
+        CompletableFuture<HttpResponse<String>> httpResponseCompletableFuture1 = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        CompletableFuture<HttpResponse<String>> httpResponseCompletableFuture2 = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        CompletableFuture<HttpResponse<String>> httpResponseCompletableFuture3 = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+        System.out.println(httpResponseCompletableFuture3.get().headers());
+        System.out.println(httpResponseCompletableFuture3.get().body());
+
+    }
 }
