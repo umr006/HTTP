@@ -7,20 +7,34 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HttpServer {
 
     private final int port;
+    private final int poolSize;
+    private boolean stopped;
+    private final ExecutorService executorService;
+    private int cntRequest = 0;
 
-    public HttpServer(int port) {
+    public void setStopped(boolean stopped) {
+        this.stopped = stopped;
+    }
+
+    public HttpServer(int port, int poolSize) {
         this.port = port;
+        this.poolSize = poolSize;
+        this.executorService = Executors.newFixedThreadPool(poolSize);
     }
 
     public void run() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            processSocket(socket);
+            while (!stopped) {
+                Socket socket = serverSocket.accept();
+                executorService.submit(() -> processSocket(socket));
+            }
         } catch (IOException e) {
             //TODO добавить логгирование
             e.printStackTrace();
@@ -31,7 +45,7 @@ public class HttpServer {
         try (   socket;
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream())) {
-            System.out.println("lsdmglsdmglmsg");
+            System.out.println("CntRequest: " + cntRequest++);
             //sSystem.out.println("Request: " + new String(inputStream.readAllBytes()));
             byte[] body = Files.readAllBytes(Path.of("src/main/resources/pro100.html"));
             byte[] headers = """
@@ -42,14 +56,13 @@ public class HttpServer {
             dataOutputStream.write(headers);
             dataOutputStream.write(System.lineSeparator().getBytes());
             dataOutputStream.write(body);
-            System.out.println("kjsnfdgjnsfgjnfsg");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void main(String[] args) {
-        HttpServer httpServer = new HttpServer(9000);
+        HttpServer httpServer = new HttpServer(9000, 10);
         httpServer.run();
     }
 
